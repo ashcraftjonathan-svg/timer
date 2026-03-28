@@ -39,8 +39,6 @@
       text-align: center;
       white-space: nowrap;
       color: #00cc44;
-
-      /* Prevent sideways shifting */
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
     }
@@ -77,6 +75,16 @@
       width: 50%;
       height: 50%;
     }
+
+    .flash {
+      animation: flash-red 1s steps(1, end) infinite;
+    }
+
+    @keyframes flash-red {
+      0%   { color: #ff2b2b; }
+      50%  { color: #000000; }
+      100% { color: #ff2b2b; }
+    }
   </style>
 </head>
 
@@ -111,20 +119,25 @@
         };
       }
 
-      function updateColor() {
+      function updateColorAndFlash() {
+        timerEl.classList.remove('flash');
+
         if (time > 10 * 60) {
           timerEl.style.color = '#00cc44';
         } else if (time > 5 * 60) {
           timerEl.style.color = '#ffcc00';
+        } else if (time > 0) {
+          timerEl.style.color = '#ff2b2b';
         } else {
           timerEl.style.color = '#ff2b2b';
+          timerEl.classList.add('flash');
         }
       }
 
       function render() {
         const { mins, secs } = getParts(time);
         timerEl.textContent = `${pad(mins)}:${pad(secs)}`;
-        updateColor();
+        updateColorAndFlash();
         fitText();
       }
 
@@ -133,18 +146,17 @@
         const maxW = rect.width * 0.9;
         const maxH = rect.height * 0.7;
 
+        if (rect.width <= 0 || rect.height <= 0) return;
+
         let low = 10;
-        let high = Math.max(40, rect.height * 2);
+        let high = Math.max(40, Math.floor(rect.height * 2));
         let best = low;
 
         while (low <= high) {
           const mid = Math.floor((low + high) / 2);
           timerEl.style.fontSize = mid + 'px';
 
-          if (
-            timerEl.scrollWidth <= maxW &&
-            timerEl.scrollHeight <= maxH
-          ) {
+          if (timerEl.scrollWidth <= maxW && timerEl.scrollHeight <= maxH) {
             best = mid;
             low = mid + 1;
           } else {
@@ -183,12 +195,12 @@
       }
 
       function bind(el, fn) {
-        el.addEventListener('click', e => {
+        el.addEventListener('click', function (e) {
           e.preventDefault();
           fn();
         });
 
-        el.addEventListener('touchstart', e => {
+        el.addEventListener('touchstart', function (e) {
           e.preventDefault();
           fn();
         }, { passive: false });
