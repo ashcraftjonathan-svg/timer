@@ -39,6 +39,8 @@
       text-align: center;
       white-space: nowrap;
       color: #00cc44;
+
+      /* Prevent sideways shifting */
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
     }
@@ -90,7 +92,7 @@
 
 <body>
   <div id="countdown-app">
-    <div id="timer">35:00</div>
+    <div id="timer">45:00</div>
 
     <div id="zone-top" class="tap-zone"></div>
     <div id="zone-bottom" class="tap-zone"></div>
@@ -100,7 +102,7 @@
 
   <script>
     (function () {
-      const START_SECONDS = 35 * 60;
+      const START_SECONDS = 45 * 60;
       let time = START_SECONDS;
       let paused = false;
 
@@ -149,14 +151,17 @@
         if (rect.width <= 0 || rect.height <= 0) return;
 
         let low = 10;
-        let high = Math.max(40, Math.floor(rect.height * 2));
+        let high = Math.max(40, rect.height * 2);
         let best = low;
 
         while (low <= high) {
           const mid = Math.floor((low + high) / 2);
           timerEl.style.fontSize = mid + 'px';
 
-          if (timerEl.scrollWidth <= maxW && timerEl.scrollHeight <= maxH) {
+          if (
+            timerEl.scrollWidth <= maxW &&
+            timerEl.scrollHeight <= maxH
+          ) {
             best = mid;
             low = mid + 1;
           } else {
