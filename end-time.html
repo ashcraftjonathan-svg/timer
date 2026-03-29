@@ -39,8 +39,22 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.2em;
+      gap: 0.25em;
       pointer-events: none;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4em;
+    }
+
+    .label {
+      color: #cccccc;
+      font-weight: 600;
+      white-space: nowrap;
+      opacity: 0.9;
     }
 
     .small-time {
@@ -87,9 +101,19 @@
 <body>
   <div id="countdown-app">
     <div id="display-wrap">
-      <div id="current-time" class="small-time">12:00</div>
+
+      <div class="row">
+        <div id="current-label" class="label">Current time</div>
+        <div id="current-time" class="small-time">12:00</div>
+      </div>
+
       <div id="timer">35:00</div>
-      <div id="end-time" class="small-time">12:35</div>
+
+      <div class="row">
+        <div id="end-label" class="label">End time</div>
+        <div id="end-time" class="small-time">12:35</div>
+      </div>
+
     </div>
 
     <div id="zone-top" class="tap-zone"></div>
@@ -108,6 +132,8 @@
       const timerEl = document.getElementById('timer');
       const currentTimeEl = document.getElementById('current-time');
       const endTimeEl = document.getElementById('end-time');
+      const currentLabelEl = document.getElementById('current-label');
+      const endLabelEl = document.getElementById('end-label');
 
       function pad(num) {
         return String(num).padStart(2, '0');
@@ -167,9 +193,19 @@
           timerEl.style.fontSize = mid + 'px';
           currentTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
           endTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
+          currentLabelEl.style.fontSize = Math.floor(mid / 5) + 'px';
+          endLabelEl.style.fontSize = Math.floor(mid / 5) + 'px';
 
-          const totalH = timerEl.scrollHeight + currentTimeEl.scrollHeight + endTimeEl.scrollHeight;
-          const maxW = Math.max(timerEl.scrollWidth, currentTimeEl.scrollWidth, endTimeEl.scrollWidth);
+          const totalH =
+            timerEl.scrollHeight +
+            currentTimeEl.scrollHeight +
+            endTimeEl.scrollHeight;
+
+          const maxW = Math.max(
+            timerEl.scrollWidth,
+            currentTimeEl.scrollWidth,
+            endTimeEl.scrollWidth
+          );
 
           if (totalH <= rect.height * 0.75 && maxW <= rect.width * 0.9) {
             best = mid;
@@ -182,6 +218,8 @@
         timerEl.style.fontSize = best + 'px';
         currentTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
         endTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
+        currentLabelEl.style.fontSize = Math.floor(best / 5) + 'px';
+        endLabelEl.style.fontSize = Math.floor(best / 5) + 'px';
       }
 
       function tick() {
