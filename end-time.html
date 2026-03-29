@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Countdown Timer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #countdown-app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      background: #000;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    #display-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2em;
+      pointer-events: none;
+    }
+
+    .small-time {
+      color: #ffffff;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
+
+    #timer {
+      color: #00cc44;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      line-height: 1;
+    }
+
+    .tap-zone {
+      position: absolute;
+      z-index: 5;
+    }
+
+    #zone-top { top: 0; left: 0; width: 100%; height: 25%; }
+    #zone-bottom { bottom: 0; left: 0; width: 100%; height: 25%; }
+    #zone-left { top: 25%; left: 0; width: 25%; height: 50%; }
+    #zone-center { top: 25%; left: 25%; width: 50%; height: 50%; }
+
+    .flash {
+      animation: flash-red 1s steps(1, end) infinite;
+    }
+
+    @keyframes flash-red {
+      0% { color: #ff2b2b; }
+      50% { color: #000; }
+      100% { color: #ff2b2b; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="countdown-app">
+    <div id="display-wrap">
+      <div id="current-time" class="small-time">12:00</div>
+      <div id="timer">35:00</div>
+      <div id="end-time" class="small-time">12:35</div>
+    </div>
+
+    <div id="zone-top" class="tap-zone"></div>
+    <div id="zone-bottom" class="tap-zone"></div>
+    <div id="zone-left" class="tap-zone"></div>
+    <div id="zone-center" class="tap-zone"></div>
+  </div>
+
+  <script>
+    (function () {
+      const START_SECONDS = 35 * 60;
+      let time = START_SECONDS;
+      let paused = false;
+
+      const app = document.getElementById('countdown-app');
+      const timerEl = document.getElementById('timer');
+      const currentTimeEl = document.getElementById('current-time');
+      const endTimeEl = document.getElementById('end-time');
+
+      function pad(num) {
+        return String(num).padStart(2, '0');
+      }
+
+      function format12Hour(date) {
+        let h = date.getHours();
+        const m = date.getMinutes();
+        h = h % 12 || 12;
+        return `${h}:${pad(m)}`;
+      }
+
+      function updateCurrentTime() {
+        currentTimeEl.textContent = format12Hour(new Date());
+      }
+
+      function updateEndTime() {
+        const now = new Date();
+        const end = new Date(now.getTime() + time * 1000);
+        endTimeEl.textContent = format12Hour(end);
+      }
+
+      function updateColorAndFlash() {
+        timerEl.classList.remove('flash');
+
+        if (time > 10 * 60) {
+          timerEl.style.color = '#00cc44';
+        } else if (time > 5 * 60) {
+          timerEl.style.color = '#ffcc00';
+        } else if (time > 0) {
+          timerEl.style.color = '#ff2b2b';
+        } else {
+          timerEl.style.color = '#ff2b2b';
+          timerEl.classList.add('flash');
+        }
+      }
+
+      function renderTimer() {
+        const abs = Math.abs(time);
+        const mins = Math.floor(abs / 60);
+        const secs = abs % 60;
+        timerEl.textContent = `${pad(mins)}:${pad(secs)}`;
+        updateColorAndFlash();
+        updateEndTime();
+        fitText();
+      }
+
+      function fitText() {
+        const rect = app.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+
+        let low = 10, high = rect.height * 2, best = low;
+
+        while (low <= high) {
+          const mid = Math.floor((low + high) / 2);
+
+          timerEl.style.fontSize = mid + 'px';
+          currentTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
+          endTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
+
+          const totalH = timerEl.scrollHeight + currentTimeEl.scrollHeight + endTimeEl.scrollHeight;
+          const maxW = Math.max(timerEl.scrollWidth, currentTimeEl.scrollWidth, endTimeEl.scrollWidth);
+
+          if (totalH <= rect.height * 0.75 && maxW <= rect.width * 0.9) {
+            best = mid;
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
+
+        timerEl.style.fontSize = best + 'px';
+        currentTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
+        endTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
+      }
+
+      function tick() {
+        if (!paused) {
+          time -= 1;
+          renderTimer();
+        }
+      }
+
+      function addMinute() { time += 60; renderTimer(); }
+      function subtractMinute() { time -= 60; renderTimer(); }
+      function resetTimer() { time = START_SECONDS; paused = false; renderTimer(); }
+      function togglePause() { paused = !paused; }
+
+      function bind(el, fn) {
+        el.addEventListener('click', e => { e.preventDefault(); fn(); });
+        el.addEventListener('touchstart', e => { e.preventDefault(); fn(); }, { passive: false });
+      }
+
+      bind(document.getElementById('zone-top'), addMinute);
+      bind(document.getElementById('zone-bottom'), subtractMinute);
+      bind(document.getElementById('zone-left'), resetTimer);
+      bind(document.getElementById('zone-center'), togglePause);
+
+      new ResizeObserver(fitText).observe(app);
+      window.addEventListener('resize', fitText);
+
+      function updateClockLoop() {
+        updateCurrentTime();
+        updateEndTime();
+      }
+
+      updateClockLoop();
+      renderTimer();
+
+      setInterval(tick, 1000);
+
+      const now = new Date();
+      const delay = (60 - now.getSeconds()) * 1000;
+
+      setTimeout(() => {
+        updateClockLoop();
+        setInterval(updateClockLoop, 60000);
+      }, delay);
+
+    })();
+  </script>
+</body>
+</html>
