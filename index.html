@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Countdown Timer</title>
+  <title>Preaching Timer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -29,18 +29,36 @@
       touch-action: manipulation;
     }
 
-    #timer {
+    #display-wrap {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.18em;
+      pointer-events: none;
+    }
+
+    #timer {
       line-height: 1;
       font-weight: 700;
       text-align: center;
       white-space: nowrap;
       color: #00cc44;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+    }
 
-      /* Prevent sideways shifting */
+    #current-time {
+      line-height: 1;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+      color: #ffffff;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
     }
@@ -92,7 +110,10 @@
 
 <body>
   <div id="countdown-app">
-    <div id="timer">45:00</div>
+    <div id="display-wrap">
+      <div id="timer">35:00</div>
+      <div id="current-time">12:00</div>
+    </div>
 
     <div id="zone-top" class="tap-zone"></div>
     <div id="zone-bottom" class="tap-zone"></div>
@@ -102,23 +123,35 @@
 
   <script>
     (function () {
-      const START_SECONDS = 45 * 60;
+      const START_SECONDS = 35 * 60;
       let time = START_SECONDS;
       let paused = false;
 
       const app = document.getElementById('countdown-app');
       const timerEl = document.getElementById('timer');
+      const currentTimeEl = document.getElementById('current-time');
 
       function pad(num) {
         return String(num).padStart(2, '0');
       }
 
-      function getParts(t) {
+      function getTimerParts(t) {
         const abs = Math.abs(t);
         return {
           mins: Math.floor(abs / 60),
           secs: abs % 60
         };
+      }
+
+      function getCurrentTimeText() {
+        const now = new Date();
+        let hours = now.getHours();
+        const minutes = now.getMinutes();
+
+        hours = hours % 12;
+        if (hours === 0) hours = 12;
+
+        return `${hours}:${pad(minutes)}`;
       }
 
       function updateColorAndFlash() {
@@ -136,32 +169,42 @@
         }
       }
 
-      function render() {
-        const { mins, secs } = getParts(time);
-        timerEl.textContent = `${pad(mins)}:${pad(secs)}`;
+      function renderTimer() {
+        const parts = getTimerParts(time);
+        timerEl.textContent = `${pad(parts.mins)}:${pad(parts.secs)}`;
         updateColorAndFlash();
         fitText();
+      }
+
+      function renderCurrentTime() {
+        currentTimeEl.textContent = getCurrentTimeText();
       }
 
       function fitText() {
         const rect = app.getBoundingClientRect();
         const maxW = rect.width * 0.9;
-        const maxH = rect.height * 0.7;
+        const maxTimerH = rect.height * 0.42;
+        const maxClockH = rect.height * 0.18;
 
         if (rect.width <= 0 || rect.height <= 0) return;
 
         let low = 10;
-        let high = Math.max(40, rect.height * 2);
+        let high = Math.max(40, Math.floor(rect.height * 2));
         let best = low;
 
         while (low <= high) {
           const mid = Math.floor((low + high) / 2);
           timerEl.style.fontSize = mid + 'px';
+          currentTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
 
-          if (
-            timerEl.scrollWidth <= maxW &&
-            timerEl.scrollHeight <= maxH
-          ) {
+          const totalHeight = timerEl.scrollHeight + currentTimeEl.scrollHeight;
+          const totalWidth = Math.max(timerEl.scrollWidth, currentTimeEl.scrollWidth);
+          const timerFitsHeight = timerEl.scrollHeight <= maxTimerH;
+          const clockFitsHeight = currentTimeEl.scrollHeight <= maxClockH;
+          const fitsWidth = totalWidth <= maxW;
+          const fitsTotalHeight = totalHeight <= rect.height * 0.72;
+
+          if (fitsWidth && fitsTotalHeight && timerFitsHeight && clockFitsHeight) {
             best = mid;
             low = mid + 1;
           } else {
@@ -170,29 +213,35 @@
         }
 
         timerEl.style.fontSize = best + 'px';
+        currentTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
       }
 
-      function tick() {
+      function tickCountdown() {
         if (!paused) {
           time -= 1;
-          render();
+          renderTimer();
         }
+      }
+
+      function tickCurrentTime() {
+        renderCurrentTime();
+        fitText();
       }
 
       function addMinute() {
         time += 60;
-        render();
+        renderTimer();
       }
 
       function subtractMinute() {
         time -= 60;
-        render();
+        renderTimer();
       }
 
       function resetTimer() {
         time = START_SECONDS;
         paused = false;
-        render();
+        renderTimer();
       }
 
       function togglePause() {
@@ -219,8 +268,18 @@
       new ResizeObserver(fitText).observe(app);
       window.addEventListener('resize', fitText);
 
-      render();
-      setInterval(tick, 1000);
+      renderCurrentTime();
+      renderTimer();
+
+      setInterval(tickCountdown, 1000);
+
+      const now = new Date();
+      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+      setTimeout(function () {
+        tickCurrentTime();
+        setInterval(tickCurrentTime, 60000);
+      }, msUntilNextMinute);
     })();
   </script>
 </body>
