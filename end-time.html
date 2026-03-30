@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Countdown Timer</title>
+  <title>Preaching Timer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <style>
     html, body {
@@ -48,13 +51,14 @@
       align-items: center;
       justify-content: center;
       gap: 0.4em;
+      white-space: nowrap;
     }
 
     .label {
       color: #cccccc;
       font-weight: 600;
-      white-space: nowrap;
       opacity: 0.9;
+      white-space: nowrap;
     }
 
     .small-time {
@@ -81,10 +85,33 @@
       z-index: 5;
     }
 
-    #zone-top { top: 0; left: 0; width: 100%; height: 25%; }
-    #zone-bottom { bottom: 0; left: 0; width: 100%; height: 25%; }
-    #zone-left { top: 25%; left: 0; width: 25%; height: 50%; }
-    #zone-center { top: 25%; left: 25%; width: 50%; height: 50%; }
+    #zone-top {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 25%;
+    }
+
+    #zone-bottom {
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 25%;
+    }
+
+    #zone-left {
+      top: 25%;
+      left: 0;
+      width: 25%;
+      height: 50%;
+    }
+
+    #zone-center {
+      top: 25%;
+      left: 25%;
+      width: 50%;
+      height: 50%;
+    }
 
     .flash {
       animation: flash-red 1s steps(1, end) infinite;
@@ -92,7 +119,7 @@
 
     @keyframes flash-red {
       0% { color: #ff2b2b; }
-      50% { color: #000; }
+      50% { color: #000000; }
       100% { color: #ff2b2b; }
     }
   </style>
@@ -101,7 +128,6 @@
 <body>
   <div id="countdown-app">
     <div id="display-wrap">
-
       <div class="row">
         <div id="current-label" class="label">Current time</div>
         <div id="current-time" class="small-time">12:00</div>
@@ -113,13 +139,12 @@
         <div id="end-label" class="label">End time</div>
         <div id="end-time" class="small-time">12:35</div>
       </div>
-
     </div>
 
-    <div id="zone-top" class="tap-zone"></div>
-    <div id="zone-bottom" class="tap-zone"></div>
-    <div id="zone-left" class="tap-zone"></div>
-    <div id="zone-center" class="tap-zone"></div>
+    <div id="zone-top" class="tap-zone" aria-label="Add 1 minute"></div>
+    <div id="zone-bottom" class="tap-zone" aria-label="Subtract 1 minute"></div>
+    <div id="zone-left" class="tap-zone" aria-label="Reset to 35 minutes"></div>
+    <div id="zone-center" class="tap-zone" aria-label="Pause or resume"></div>
   </div>
 
   <script>
@@ -185,7 +210,9 @@
         const rect = app.getBoundingClientRect();
         if (rect.width <= 0 || rect.height <= 0) return;
 
-        let low = 10, high = rect.height * 2, best = low;
+        let low = 10;
+        let high = Math.floor(rect.height * 2);
+        let best = low;
 
         while (low <= high) {
           const mid = Math.floor((low + high) / 2);
@@ -193,21 +220,20 @@
           timerEl.style.fontSize = mid + 'px';
           currentTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
           endTimeEl.style.fontSize = Math.floor(mid / 2) + 'px';
-          currentLabelEl.style.fontSize = Math.floor(mid / 5) + 'px';
-          endLabelEl.style.fontSize = Math.floor(mid / 5) + 'px';
+          currentLabelEl.style.fontSize = Math.max(12, Math.floor(mid / 5)) + 'px';
+          endLabelEl.style.fontSize = Math.max(12, Math.floor(mid / 5)) + 'px';
 
           const totalH =
             timerEl.scrollHeight +
             currentTimeEl.scrollHeight +
-            endTimeEl.scrollHeight;
+            endTimeEl.scrollHeight +
+            24;
 
-          const maxW = Math.max(
-            timerEl.scrollWidth,
-            currentTimeEl.scrollWidth,
-            endTimeEl.scrollWidth
-          );
+          const row1Width = currentLabelEl.scrollWidth + currentTimeEl.scrollWidth + 24;
+          const row2Width = endLabelEl.scrollWidth + endTimeEl.scrollWidth + 24;
+          const maxW = Math.max(timerEl.scrollWidth, row1Width, row2Width);
 
-          if (totalH <= rect.height * 0.75 && maxW <= rect.width * 0.9) {
+          if (totalH <= rect.height * 0.78 && maxW <= rect.width * 0.92) {
             best = mid;
             low = mid + 1;
           } else {
@@ -218,8 +244,8 @@
         timerEl.style.fontSize = best + 'px';
         currentTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
         endTimeEl.style.fontSize = Math.floor(best / 2) + 'px';
-        currentLabelEl.style.fontSize = Math.floor(best / 5) + 'px';
-        endLabelEl.style.fontSize = Math.floor(best / 5) + 'px';
+        currentLabelEl.style.fontSize = Math.max(12, Math.floor(best / 5)) + 'px';
+        endLabelEl.style.fontSize = Math.max(12, Math.floor(best / 5)) + 'px';
       }
 
       function tick() {
@@ -229,14 +255,36 @@
         }
       }
 
-      function addMinute() { time += 60; renderTimer(); }
-      function subtractMinute() { time -= 60; renderTimer(); }
-      function resetTimer() { time = START_SECONDS; paused = false; renderTimer(); }
-      function togglePause() { paused = !paused; }
+      function addMinute() {
+        time += 60;
+        renderTimer();
+      }
+
+      function subtractMinute() {
+        time -= 60;
+        renderTimer();
+      }
+
+      function resetTimer() {
+        time = START_SECONDS;
+        paused = false;
+        renderTimer();
+      }
+
+      function togglePause() {
+        paused = !paused;
+      }
 
       function bind(el, fn) {
-        el.addEventListener('click', e => { e.preventDefault(); fn(); });
-        el.addEventListener('touchstart', e => { e.preventDefault(); fn(); }, { passive: false });
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          fn();
+        });
+
+        el.addEventListener('touchstart', function (e) {
+          e.preventDefault();
+          fn();
+        }, { passive: false });
       }
 
       bind(document.getElementById('zone-top'), addMinute);
@@ -250,6 +298,7 @@
       function updateClockLoop() {
         updateCurrentTime();
         updateEndTime();
+        fitText();
       }
 
       updateClockLoop();
@@ -258,13 +307,12 @@
       setInterval(tick, 1000);
 
       const now = new Date();
-      const delay = (60 - now.getSeconds()) * 1000;
+      const delay = ((60 - now.getSeconds()) * 1000) - now.getMilliseconds();
 
-      setTimeout(() => {
+      setTimeout(function () {
         updateClockLoop();
         setInterval(updateClockLoop, 60000);
       }, delay);
-
     })();
   </script>
 </body>
